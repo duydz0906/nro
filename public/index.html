@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Linh Khí Online — Game nhập vai 2D</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><text y='52' font-size='52'>⚔️</text></svg>" />
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<div id="app">
+  <canvas id="game"></canvas>
+
+  <!-- ===================== HUD ===================== -->
+  <div id="hud" class="hidden">
+    <!-- Thông tin nhân vật -->
+    <div class="panel char-hud" id="char-hud">
+      <div class="portrait" id="portrait">⚔</div>
+      <div class="ch-info">
+        <div class="row1">
+          <span class="cname" id="hud-name">—</span>
+          <span class="clv" id="hud-lv">Lv.1</span>
+          <span class="ccls" id="hud-cls">Kiếm Tu</span>
+        </div>
+        <div class="bar hp"><div class="fill" id="bar-hp"></div><span id="txt-hp">0/0</span></div>
+        <div class="bar ki"><div class="fill" id="bar-ki"></div><span id="txt-ki">0/0</span></div>
+        <div class="bar xp"><div class="fill" id="bar-xp"></div><span id="txt-xp">0%</span></div>
+      </div>
+    </div>
+
+    <!-- Mục tiêu -->
+    <div class="panel target-hud hidden" id="target-hud">
+      <div class="tname" id="t-name">—</div>
+      <div class="bar thp"><div class="fill" id="bar-thp"></div><span id="txt-thp">0/0</span></div>
+      <div class="tlv" id="t-lv"></div>
+    </div>
+
+    <!-- Bản đồ nhỏ + nút -->
+    <div class="topright">
+      <div class="panel minimap-wrap">
+        <canvas id="minimap" width="180" height="140"></canvas>
+        <div class="mm-label" id="mm-name">—</div>
+      </div>
+      <div class="btnrow">
+        <button class="iconbtn" data-panel="char" title="Bảng nhân vật (C)">👤</button>
+        <button class="iconbtn" data-panel="inv" title="Túi đồ (B)">🎒</button>
+        <button class="iconbtn" data-panel="skill" title="Kỹ năng (K)">✨</button>
+        <button class="iconbtn" data-panel="worldmap" title="Bản đồ thế giới (M)">🗺</button>
+        <button class="iconbtn" data-panel="help" title="Hướng dẫn (H)">❓</button>
+      </div>
+      <div class="statline" id="statline">Online: 1</div>
+    </div>
+
+    <!-- Thanh kỹ năng -->
+    <div class="skillbar" id="skillbar"></div>
+
+    <!-- Chat -->
+    <div class="chat" id="chat">
+      <div class="chat-log" id="chat-log"></div>
+      <input id="chat-input" maxlength="200" placeholder="Nhấn Enter để chat, /help để xem lệnh…" />
+    </div>
+
+    <!-- Thông báo -->
+    <div class="toasts" id="toasts"></div>
+    <div class="levelup-flash" id="levelup-flash"></div>
+  </div>
+
+  <!-- ===================== MÀN HÌNH ĐĂNG NHẬP ===================== -->
+  <div class="screen login-screen" id="login-screen">
+    <div class="login-box">
+      <div class="brand">
+        <div class="logo">⚔</div>
+        <h1>LINH KHÍ<span>ONLINE</span></h1>
+        <p class="tagline">Nhập vai 2D · Chơi chung thời gian thực · Bản gốc, mã nguồn mở</p>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="login">Đăng nhập</button>
+        <button class="tab" data-tab="register">Tạo tài khoản</button>
+        <button class="tab" data-tab="guest">Chơi ngay</button>
+      </div>
+
+      <form class="tabpane active" id="pane-login" autocomplete="off">
+        <label>Tài khoản<input id="in-user" type="text" placeholder="tên đăng nhập" /></label>
+        <label>Mật khẩu<input id="in-pass" type="password" placeholder="••••••" /></label>
+        <button class="primary" type="submit">Vào thế giới</button>
+        <p class="err" id="err-login"></p>
+      </form>
+
+      <form class="tabpane" id="pane-register" autocomplete="off">
+        <label>Tài khoản<input id="rg-user" type="text" placeholder="ít nhất 3 ký tự" /></label>
+        <label>Mật khẩu<input id="rg-pass" type="password" placeholder="••••••" /></label>
+        <label>Tên nhân vật<input id="rg-char" type="text" placeholder="tên hiển thị trong game" /></label>
+        <div class="classpick" id="rg-classes"></div>
+        <button class="primary" type="submit">Tạo nhân vật</button>
+        <p class="err" id="err-register"></p>
+      </form>
+
+      <div class="tabpane" id="pane-guest">
+        <p class="hint">Chơi ngay không cần tài khoản — nhân vật vẫn được lưu trên máy chủ để bạn quay lại.</p>
+        <div class="classpick" id="gs-classes"></div>
+        <button class="primary" id="btn-guest">Bắt đầu phiêu lưu</button>
+      </div>
+
+      <div class="login-foot">
+        <span id="srv-status">Đang kết nối…</span>
+        <button class="linkbtn" id="btn-help">Hướng dẫn điều khiển</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== BẢNG ĐIỀU KHIỂN ===================== -->
+  <div class="modal hidden" id="panel-char"><div class="modal-box">
+    <header><h2>Bảng nhân vật</h2><button class="close">✕</button></header>
+    <div class="modal-body" id="char-body"></div>
+  </div></div>
+
+  <div class="modal hidden" id="panel-inv"><div class="modal-box">
+    <header><h2>Túi đồ</h2><button class="close">✕</button></header>
+    <div class="modal-body">
+      <div class="inv-grid" id="inv-grid"></div>
+      <div class="equip-col" id="equip-col"></div>
+      <div class="inv-foot">
+        <span>Vàng: <b id="inv-gold">0</b></span>
+        <span class="hint">Nhấp chuột phải vào vật phẩm để dùng / mặc; phím S để bán vật phẩm đang chọn.</span>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="modal hidden" id="panel-skill"><div class="modal-box">
+    <header><h2>Kỹ năng môn phái</h2><button class="close">✕</button></header>
+    <div class="modal-body" id="skill-body"></div>
+  </div></div>
+
+  <div class="modal hidden" id="panel-worldmap"><div class="modal-box">
+    <header><h2>Bản đồ thế giới</h2><button class="close">✕</button></header>
+    <div class="modal-body" id="worldmap-body"></div>
+  </div></div>
+
+  <div class="modal hidden" id="panel-shop"><div class="modal-box">
+    <header><h2 id="shop-title">Cửa hàng</h2><button class="close">✕</button></header>
+    <div class="modal-body" id="shop-body"></div>
+  </div></div>
+
+  <div class="modal hidden" id="panel-help"><div class="modal-box">
+    <header><h2>Hướng dẫn</h2><button class="close">✕</button></header>
+    <div class="modal-body help-body">
+      <h3>Điều khiển</h3>
+      <ul>
+        <li><b>W A S D</b> hoặc <b>phím mũi tên</b>: di chuyển</li>
+        <li><b>Chuột trái</b> (giữ để đánh liên tục): tấn công hướng con trỏ</li>
+        <li><b>Chuột trái</b> vào quái: chọn mục tiêu</li>
+        <li><b>1 2 3 4</b>: kỹ năng (4 = đánh thường cũng được)</li>
+        <li><b>Tab</b>: chọn quái gần nhất · <b>E</b>: nói chuyện với NPC / vào cổng</li>
+        <li><b>B</b> túi đồ · <b>C</b> nhân vật · <b>K</b> kỹ năng · <b>M</b> bản đồ · <b>H</b> trợ giúp</li>
+        <li><b>Enter</b>: chat · <b>/w tên nội dung</b>: nhắn riêng</li>
+      </ul>
+      <h3>Lối chơi</h3>
+      <ul>
+        <li>Rời làng theo cổng dịch chuyển ở phía đông, đánh quái để lên cấp.</li>
+        <li>Mỗi cấp nhận 3 điểm cộng — chia vào Sức Mạnh / Thân Pháp / Thể Chất / Linh Lực trong bảng nhân vật.</li>
+        <li>Quái rơi vàng, trang bị và đan dược. Đi ngang qua vật phẩm để nhặt.</li>
+        <li>Trang bị có 5 phẩm chất (xám → xanh lá → xanh dương → tím → cam). Cường hóa tại thợ rèn trong làng.</li>
+        <li>Đấu Trường (bản đồ 5) là khu vực PvP — người chơi có thể đánh nhau ở đó.</li>
+      </ul>
+      <h3>Mẹo</h3>
+      <ul>
+        <li>Đứng trong làng hồi phục rất nhanh.</li>
+        <li>Boss có thanh máu to, rơi đồ phẩm chất cao nhưng hồi sinh lâu.</li>
+        <li>Gõ <b>/help</b> trong khung chat để xem toàn bộ lệnh.</li>
+      </ul>
+    </div>
+  </div></div>
+
+  <!-- Chết / chờ hồi sinh -->
+  <div class="death hidden" id="death">
+    <div class="death-box">
+      <h2>Bạn đã ngã xuống</h2>
+      <p id="death-msg">Hồn phách đang tụ lại…</p>
+      <div class="bar big"><div class="fill" id="bar-respawn"></div></div>
+      <button class="primary" id="btn-respawn">Hồi sinh tại làng</button>
+    </div>
+  </div>
+
+  <div class="loading hidden" id="loading"><div class="spinner"></div><span>Đang vào thế giới…</span></div>
+</div>
+
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "linh-khi-online",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Linh Khi Online - game nhap vai 2D multiplayer nguyen ban, chay tren trinh duyet",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node test/run.js",
+    "test:play": "node test/smoke.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^5.3.0",
+    "ws": "^8.22.0"
+  }
+}
